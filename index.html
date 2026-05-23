@@ -13,11 +13,15 @@
         
         label { display: flex; align-items: center; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
         
-        /* Estilos do Tooltip */
-        .tooltip { position: relative; display: inline-block; margin-left: 8px; cursor: help; background-color: #cbd5e1; color: #334155; border-radius: 50%; width: 16px; height: 16px; text-align: center; font-size: 11px; line-height: 16px; font-weight: bold; }
-        .tooltip .tooltiptext { visibility: hidden; width: 200px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 6px; padding: 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal; line-height: 1.4; box-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; }
+        /* Estilos do Tooltip com suporte a Touch/Mobile */
+        .tooltip { position: relative; display: inline-block; margin-left: 8px; cursor: help; background-color: #cbd5e1; color: #334155; border-radius: 50%; width: 16px; height: 16px; text-align: center; font-size: 11px; line-height: 16px; font-weight: bold; outline: none; -webkit-tap-highlight-color: transparent; }
+        .tooltip .tooltiptext { visibility: hidden; width: 200px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 6px; padding: 8px; position: absolute; z-index: 2; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal; line-height: 1.4; box-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; }
         .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #1e293b transparent transparent transparent; }
-        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+        
+        /* Ativadores para Mouse e Touch */
+        .tooltip:hover .tooltiptext, 
+        .tooltip:focus .tooltiptext, 
+        .tooltip:active .tooltiptext { visibility: visible; opacity: 1; }
 
         .input-group { display: flex; gap: 10px; align-items: center; }
         .input-group input[type="range"] { flex: 2; cursor: pointer; }
@@ -72,7 +76,7 @@
         </div>
         <div>
             <label>Custos Indiretos (%) 
-                <div class="tooltip">?<span class="tooltiptext">Taxas, projetos, licenças e fundo de reserva/imprevistos aplicados sobre o valor da obra e terreno.</span></div>
+                <div class="tooltip" tabindex="0" onclick="void(0)">?<span class="tooltiptext">Taxas, projetos, licenças e fundo de reserva/imprevistos aplicados sobre o valor da obra e terreno.</span></div>
             </label>
             <div class="input-group">
                 <input type="range" id="percIndiretosRange" min="0" max="50" step="1" value="15" oninput="sync('percIndiretosRange', 'percIndiretosNum')">
@@ -88,7 +92,7 @@
         </div>
         <div>
             <label>IPCA Anual Projetado (%) 
-                <div class="tooltip">?<span class="tooltiptext">Estimativa média de inflação anual para basear o reajuste do contrato de aluguel.</span></div>
+                <div class="tooltip" tabindex="0" onclick="void(0)">?<span class="tooltiptext">Estimativa média de inflação anual para basear o reajuste do contrato de aluguel.</span></div>
             </label>
             <div class="input-group">
                 <input type="range" id="ipcaRange" min="0" max="15" step="0.1" value="4.5" oninput="sync('ipcaRange', 'ipcaNum')">
@@ -97,7 +101,7 @@
         </div>
         <div>
             <label>OPEX Anual (% da Receita) 
-                <div class="tooltip">?<span class="tooltiptext">Despesas Operacionais (Operating Expenses). Custos com manutenção, administração, seguros ou IPTU não repassado ao locatário.</span></div>
+                <div class="tooltip" tabindex="0" onclick="void(0)">?<span class="tooltiptext">Despesas Operacionais (Operating Expenses). Custos com manutenção, administração, seguros ou IPTU não repassado ao locatário.</span></div>
             </label>
             <div class="input-group">
                 <input type="range" id="opexRange" min="0" max="20" step="0.1" value="5" oninput="sync('opexRange', 'opexNum')">
@@ -111,7 +115,7 @@
         <div class="grid-results">
             <div class="card">
                 <h3>CAPEX Total 
-                    <div class="tooltip">?<span class="tooltiptext">Investimento de Capital Total. Soma do custo do terreno, construção civil e todos os custos indiretos.</span></div>
+                    <div class="tooltip" tabindex="0" onclick="void(0)">?<span class="tooltiptext">Investimento de Capital Total. Soma do custo do terreno, construção civil e todos os custos indiretos.</span></div>
                 </h3>
                 <p id="resCapex">R$ 0,00</p>
             </div>
@@ -121,13 +125,13 @@
             </div>
             <div class="card">
                 <h3>Yield Inicial (% a.a.) 
-                    <div class="tooltip">?<span class="tooltiptext">Taxa de rentabilidade. Representa o quanto a receita anual de aluguel devolve do investimento total (CAPEX) no primeiro ano.</span></div>
+                    <div class="tooltip" tabindex="0" onclick="void(0)">?<span class="tooltiptext">Taxa de rentabilidade. Representa o quanto a receita anual de aluguel devolve do investimento total (CAPEX) no primeiro ano.</span></div>
                 </h3>
                 <p id="resYield">0.00%</p>
             </div>
             <div class="card">
                 <h3>Payback Simples (Anos) 
-                    <div class="tooltip">?<span class="tooltiptext">Tempo estimado (em anos) necessário para recuperar todo o valor investido (CAPEX) apenas com o recebimento dos aluguéis.</span></div>
+                    <div class="tooltip" tabindex="0" onclick="void(0)">?<span class="tooltiptext">Tempo estimado (em anos) necessário para recuperar todo o valor investido (CAPEX) apenas com o recebimento dos aluguéis.</span></div>
                 </h3>
                 <p id="resPayback">0.00</p>
             </div>
@@ -143,7 +147,7 @@
                     <th>Aluguel Mensal (R$)</th>
                     <th>Receita Bruta (R$)</th>
                     <th>EBITDA (R$)
-                        <div class="tooltip" style="margin-left: 4px;">?<span class="tooltiptext">Lucro operacional. É a Receita Bruta descontando as despesas operacionais (OPEX), antes de impostos e depreciação.</span></div>
+                        <div class="tooltip" tabindex="0" onclick="void(0)" style="margin-left: 4px;">?<span class="tooltiptext">Lucro operacional. É a Receita Bruta descontando as despesas operacionais (OPEX), antes de impostos e depreciação.</span></div>
                     </th>
                     <th>Fluxo Acumulado (R$)</th>
                 </tr>
@@ -208,6 +212,13 @@
 
         document.getElementById('tabelaFluxo').innerHTML = tabelaHTML;
     }
+
+    // Fecha os tooltips ao tocar fora deles no mobile
+    document.addEventListener('touchstart', function(e) {
+        if (!e.target.closest('.tooltip')) {
+            document.activeElement.blur();
+        }
+    });
 
     window.onload = calcular;
 </script>
