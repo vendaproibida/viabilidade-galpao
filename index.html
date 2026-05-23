@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viabilidade - Galpão Logístico</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: #2c3e50; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .results { background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .results .grid-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0 0 10px 0; font-size: 1em; color: #555; }
+        .card p { margin: 0; font-size: 1.2em; font-weight: bold; color: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85em; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #2c3e50; color: white; text-align: center; }
+        .table-responsive { overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Viabilidade Econômico-Financeira</h1>
+    
+    <h2>1. Premissas Editáveis</h2>
+    <div class="grid">
+        <div><label>Área do Terreno (m²)</label><input type="number" id="areaTerreno" value="10000" oninput="calcular()"></div>
+        <div><label>Custo do Terreno (R$/m²)</label><input type="number" id="custoTerreno" value="400" oninput="calcular()"></div>
+        <div><label>Área Construída (m²)</label><input type="number" id="areaConstruida" value="5000" oninput="calcular()"></div>
+        <div><label>Custo da Construção (R$/m²)</label><input type="number" id="custoConstrucao" value="2400" oninput="calcular()"></div>
+        <div><label>Custos Indiretos (%)</label><input type="number" id="percIndiretos" value="15" oninput="calcular()"></div>
+        <div><label>Aluguel Mensal Inicial (R$)</label><input type="number" id="aluguel" value="161000" oninput="calcular()"></div>
+        <div><label>IPCA Anual Projetado (%)</label><input type="number" id="ipca" value="4.5" step="0.1" oninput="calcular()"></div>
+        <div><label>OPEX Anual (% da Receita)</label><input type="number" id="opex" value="5" step="0.1" oninput="calcular()"></div>
+    </div>
+
+    <h2>2. Indicadores de Retorno</h2>
+    <div class="results">
+        <div class="grid-results">
+            <div class="card"><h3>CAPEX Total</h3><p id="resCapex">R$ 0,00</p></div>
+            <div class="card"><h3>Receita Anual (Ano 1)</h3><p id="resReceita">R$ 0,00</p></div>
+            <div class="card"><h3>Yield Inicial (% a.a.)</h3><p id="resYield">0.00%</p></div>
+            <div class="card"><h3>Payback Simples (Anos)</h3><p id="resPayback">0.00</p></div>
+        </div>
+    </div>
+
+    <h2>3. Fluxo Anual Projetado (15 anos)</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ano</th>
+                    <th>Aluguel Mensal (R$)</th>
+                    <th>Receita Bruta (R$)</th>
+                    <th>EBITDA (R$)</th>
+                    <th>Fluxo Acumulado (R$)</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaFluxo">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    
+    function calcular() {
+        const areaTerreno = parseFloat(document.getElementById('areaTerreno').value) || 0;
+        const custoTerreno = parseFloat(document.getElementById('custoTerreno').value) || 0;
+        const areaConstruida = parseFloat(document.getElementById('areaConstruida').value) || 0;
+        const custoConstrucao = parseFloat(document.getElementById('custoConstrucao').value) || 0;
+        const percIndiretos = parseFloat(document.getElementById('percIndiretos').value) || 0;
+        const aluguel = parseFloat(document.getElementById('aluguel').value) || 0;
+        const ipca = parseFloat(document.getElementById('ipca').value) / 100 || 0;
+        const opex = parseFloat(document.getElementById('opex').value) / 100 || 0;
+
+        // Cálculos CAPEX
+        const custoTerrenoTotal = areaTerreno * custoTerreno;
+        const custoObraTotal = areaConstruida * custoConstrucao;
+        const indiretos = (custoTerrenoTotal + custoObraTotal) * (percIndiretos / 100);
+        const capexTotal = custoTerrenoTotal + custoObraTotal + indiretos;
+        
+        // Indicadores Ano 1
+        const receitaAno1 = aluguel * 12;
+        const yieldAno1 = capexTotal > 0 ? (receitaAno1 / capexTotal) * 100 : 0;
+        const payback = receitaAno1 > 0 ? capexTotal / receitaAno1 : 0;
+
+        document.getElementById('resCapex').innerText = fmt.format(capexTotal);
+        document.getElementById('resReceita').innerText = fmt.format(receitaAno1);
+        document.getElementById('resYield').innerText = yieldAno1.toFixed(2) + '%';
+        document.getElementById('resPayback').innerText = payback.toFixed(2);
+
+        // Fluxo 15 anos
+        let tabelaHTML = '';
+        let aluguelAtual = aluguel;
+        let fluxoAcumulado = 0;
+
+        for (let ano = 1; ano <= 15; ano++) {
+            let receitaBruta = aluguelAtual * 12;
+            let ebitda = receitaBruta * (1 - opex);
+            fluxoAcumulado += ebitda;
+
+            tabelaHTML += `<tr>
+                <td style="text-align:center">${ano}</td>
+                <td>${fmt.format(aluguelAtual)}</td>
+                <td>${fmt.format(receitaBruta)}</td>
+                <td>${fmt.format(ebitda)}</td>
+                <td>${fmt.format(fluxoAcumulado)}</td>
+            </tr>`;
+
+            aluguelAtual = aluguelAtual * (1 + ipca); // Reajuste para o próximo ano
+        }
+
+        document.getElementById('tabelaFluxo').innerHTML = tabelaHTML;
+    }
+
+    // Calcular ao carregar a página
+    window.onload = calcular;
+</script>
+
+</body>
+</html>
