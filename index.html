@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plataforma de Viabilidade Imobiliária</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         :root {
             --primary: #2c3e50;
@@ -17,9 +19,14 @@
         
         h1, h2, h3 { color: var(--primary); margin-top: 0; }
         
+        /* Header e Botão de Exportar */
+        .top-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .btn-export { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-export:hover { background: #059669; }
+
         /* Sistema de Abas */
         .tabs { display: flex; background: var(--primary); margin-bottom: 20px; border-radius: 6px; overflow: hidden; }
-        .tab-btn { flex: 1; padding: 15px; background: none; border: none; color: #fff; font-size: 1em; font-weight: bold; cursor: pointer; transition: background 0.3s; text-align: center; }
+        .tab-btn { flex: 1; padding: 15px; background: none; border: none; color: #fff; font-size: 1em; font-weight: bold; cursor: pointer; transition: 0.3s; text-align: center; }
         .tab-btn:hover { background: rgba(255,255,255,0.1); }
         .tab-btn.active { background: var(--accent); }
         .tab-content { display: none; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -40,13 +47,17 @@
         /* Inputs */
         .input-group { display: flex; gap: 10px; align-items: center; }
         .input-group input[type="range"] { flex: 2; cursor: pointer; }
-        .input-group input[type="number"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; min-width: 70px; }
+        .input-group input[type="number"], .input-group input[type="text"], .input-group input[type="date"], textarea { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; min-width: 70px; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
         
-        /* Cards de Resultados Estáticos (Desktop) */
+        /* Cards de Resultados Estáticos */
         .results-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; background: #e8f4f8; padding: 15px; border-radius: 8px; }
         .card { background: var(--card-bg); padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .card h4 { margin: 0 0 5px 0; font-size: 0.9em; color: #555; }
         .card p { margin: 0; font-size: 1.3em; font-weight: bold; color: var(--accent); }
+
+        /* Gráfico */
+        .chart-container { position: relative; margin: auto; height: 350px; width: 100%; margin-bottom: 20px; }
 
         /* Tabelas */
         .table-responsive { overflow-x: auto; margin-top: 15px; }
@@ -55,43 +66,54 @@
         th { background-color: var(--primary); color: white; text-align: center; }
         tr:nth-child(even) { background-color: #f9f9f9; }
 
-        /* Gráficos */
-        .chart-container { position: relative; margin: auto; height: 350px; width: 100%; }
-
-        /* BARRA FIXA MOBILE (Melhoria de UX solicitada) */
-        .sticky-summary {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: #1e293b;
-            color: #fff;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            padding: 12px;
-            box-shadow: 0 -4px 10px rgba(0,0,0,0.15);
-            z-index: 999;
-            text-align: center;
-        }
+        /* Barra Fixa Mobile */
+        .sticky-summary { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; color: #fff; display: grid; grid-template-columns: repeat(3, 1fr); padding: 12px; box-shadow: 0 -4px 10px rgba(0,0,0,0.15); z-index: 999; text-align: center; }
         .sticky-item h5 { margin: 0; font-size: 0.75em; color: #94a3b8; text-transform: uppercase; }
         .sticky-item p { margin: 2px 0 0 0; font-size: 1em; font-weight: bold; color: #38bdf8; }
+        @media (min-width: 769px) { .sticky-summary { display: none; } }
+
+        /* Modal do Formulário PDF */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal { background: #fff; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; }
+        .modal h3 { margin-top: 0; }
+        .modal .form-group { margin-bottom: 15px; }
+        .modal .form-group label { margin-bottom: 5px; display: block; }
+        .modal .form-group input, .modal .form-group textarea { width: 100%; box-sizing: border-box; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #ccc; color: #333; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
+
+        /* Template Oculto para o PDF */
+        #pdfTemplate { display: none; padding: 30px; background: #fff; color: #000; }
+        .pdf-header { display: flex; justify-content: space-between; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; }
+        .pdf-title { text-align: center; margin-bottom: 30px; }
+        .pdf-section { margin-bottom: 20px; page-break-inside: avoid; }
+        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .pdf-box { border: 1px solid #ccc; padding: 10px; border-radius: 4px; text-align: center; background: #fafafa; }
+        .pdf-box h4 { margin: 0 0 5px 0; font-size: 0.8em; color: #555; text-transform: uppercase; }
+        .pdf-box p { margin: 0; font-size: 1.2em; font-weight: bold; color: #000; }
+        .pdf-text-block { background: #f9f9f9; padding: 15px; border-left: 4px solid #2c3e50; margin-top: 20px; font-size: 0.9em; }
         
-        @media (min-width: 769px) {
-            .sticky-summary { display: none; } /* Oculta no Desktop */
-        }
+        .pdf-table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: right; margin-bottom: 15px; }
+        .pdf-table th, .pdf-table td { padding: 5px; border: 1px solid #ddd; }
+        .pdf-table th { background-color: #2c3e50; color: white; text-align: center; }
+        .pdf-table tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Análise de Viabilidade Imobiliária</h1>
+    <div class="top-header">
+        <h1>Análise de Viabilidade</h1>
+        <button class="btn-export" onclick="abrirModal()">Exportar Relatório PDF</button>
+    </div>
     
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab(event, 'aba-premissas')">Premissas & Cenários</button>
-        <button class="tab-btn" onclick="switchTab(event, 'aba-fluxo')">Fluxo Anual & Gráfico</button>
+        <button class="tab-btn" onclick="switchTab(event, 'aba-fluxo')">Fluxo Anual</button>
         <button class="tab-btn" onclick="switchTab(event, 'aba-payback')">Simulador Payback Alvo</button>
     </div>
 
     <div id="aba-premissas" class="tab-content active">
-        <h2>1. Parâmetros do Empreendimento</h2>
         <div class="grid">
             <div>
                 <label>Área do Terreno (m²)</label>
@@ -136,14 +158,14 @@
                 </div>
             </div>
             <div>
-                <label>Cotação Dólar (R$) <div class="tooltip" tabindex="0">?<span class="tooltiptext">Para análise de investimento estrangeiro ou custo de oportunidade estruturado.</span></div></label>
+                <label>Cotação Dólar (R$) <div class="tooltip" tabindex="0">?<span class="tooltiptext">Cotação para análise comparativa em moeda estrangeira.</span></div></label>
                 <div class="input-group">
                     <input type="range" id="cambioRange" min="4.0" max="7.0" step="0.1" value="5.40" oninput="sync('cambioRange', 'cambioNum')">
                     <input type="number" id="cambioNum" value="5.40" step="0.01" oninput="sync('cambioNum', 'cambioRange')">
                 </div>
             </div>
             <div>
-                <label>Cap Rate Alvo (%) <div class="tooltip" tabindex="0">?<span class="tooltiptext">Taxa de capitalização usada para calcular o valor de venda futuro do imóvel.</span></div></label>
+                <label>Cap Rate Alvo (%) <div class="tooltip" tabindex="0">?<span class="tooltiptext">Taxa de capitalização para cálculo do valuation do ativo.</span></div></label>
                 <div class="input-group">
                     <input type="range" id="capRateRange" min="5" max="15" step="0.5" value="9" oninput="sync('capRateRange', 'capRateNum')">
                     <input type="number" id="capRateNum" value="9" step="0.1" oninput="sync('capRateNum', 'capRateRange')">
@@ -151,7 +173,7 @@
             </div>
         </div>
 
-        <h2>2. Resumo Executivo (Indicadores Atuais)</h2>
+        <h2>Resumo Executivo</h2>
         <div class="results-panel">
             <div class="card"><h4>CAPEX Total</h4><p id="c1">R$ 0</p></div>
             <div class="card"><h4>CAPEX (USD)</h4><p id="c2">U$ 0</p></div>
@@ -159,7 +181,7 @@
             <div class="card"><h4>Valuation Estimado</h4><p id="c4">R$ 0</p></div>
         </div>
 
-        <h2>3. Cenários de Retorno Propostos</h2>
+        <h2>Cenários de Retorno Propostos</h2>
         <div class="table-responsive">
             <table>
                 <thead>
@@ -171,29 +193,20 @@
                         <th>Payback Estimado</th>
                     </tr>
                 </thead>
-                <tbody id="tabelaCenarios">
-                    </tbody>
+                <tbody id="tabelaCenarios"></tbody>
             </table>
         </div>
     </div>
 
     <div id="aba-fluxo" class="tab-content">
         <h2>Projeção de Longo Prazo (15 Anos)</h2>
-        <div class="grid" style="grid-template-columns: 1fr;">
-            <div class="chart-container">
-                <canvas id="chartFluxo"></canvas>
-            </div>
+        <div class="chart-container">
+            <canvas id="chartFluxo"></canvas>
         </div>
         <div class="table-responsive">
             <table>
                 <thead>
-                    <tr>
-                        <th>Ano</th>
-                        <th>Aluguel Mensal (R$)</th>
-                        <th>Receita Bruta (R$)</th>
-                        <th>EBITDA (R$)</th>
-                        <th>Saldo Acumulado (R$)</th>
-                    </tr>
+                    <tr><th>Ano</th><th>Aluguel Mensal</th><th>Receita Bruta</th><th>EBITDA</th><th>Saldo Acumulado</th></tr>
                 </thead>
                 <tbody id="tabelaFluxo"></tbody>
             </table>
@@ -202,7 +215,6 @@
 
     <div id="aba-payback" class="tab-content">
         <h2>Simulador de Aluguel Mínimo por Payback Alvo</h2>
-        <p>Defina o tempo máximo tolerável para recuperar o investimento. O sistema informará o aluguel por m² necessário.</p>
         <div style="max-width: 500px; margin-bottom: 30px;">
             <label>Definir Payback Alvo (Anos):</label>
             <div class="input-group">
@@ -211,32 +223,111 @@
             </div>
         </div>
         <div class="results-panel">
-            <div class="card"><h4>Aluguel Mensal Requerido</h4><p id="pAluguel">R$ 0</p></div>
-            <div class="card"><h4>Aluguel por m² Privativo</h4><p id="pM2">R$ 0 / m²</p></div>
-            <div class="card"><h4>Receita Bruta Anual</h4><p id="pReceita">R$ 0</p></div>
+            <div class="card"><h4>Aluguel Requerido</h4><p id="pAluguel">R$ 0</p></div>
+            <div class="card"><h4>Aluguel por m²</h4><p id="pM2">R$ 0 / m²</p></div>
+            <div class="card"><h4>Receita Anual</h4><p id="pReceita">R$ 0</p></div>
         </div>
     </div>
 </div>
 
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3>Configurar Relatório PDF</h3>
+        <div class="form-group">
+            <label>Empresa</label>
+            <input type="text" id="fEmpresa" value="RD Participações">
+        </div>
+        <div class="form-group">
+            <label>Título do Projeto</label>
+            <input type="text" id="fProjeto" placeholder="Ex: Galpão Logístico Tangará da Serra">
+        </div>
+        <div class="form-group">
+            <label>Investidor</label>
+            <input type="text" id="fInvestidor" placeholder="Nome do Destinatário">
+        </div>
+        <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="fData">
+        </div>
+        <div class="form-group">
+            <label>Observações</label>
+            <textarea id="fObs" placeholder="Insira as considerações ou observações gerais..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+            <button class="btn-export" onclick="gerarPDF()">Gerar Arquivo</button>
+        </div>
+    </div>
+</div>
+
+<div id="pdfTemplate">
+    <div class="pdf-header">
+        <h3 id="pdfHeaderEmpresa" style="margin:0;">RD Participações</h3>
+        <span id="pdfHeaderData"></span>
+    </div>
+    
+    <div class="pdf-title">
+        <h2 id="pdfTitleProjeto" style="margin:0;">Relatório de Viabilidade</h2>
+        <p style="margin:5px 0 0 0; color:#555;">Preparado para: <strong id="pdfTitleInvestidor"></strong></p>
+    </div>
+
+    <div class="pdf-section">
+        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">1. Premissas Utilizadas</h3>
+        <div class="pdf-grid">
+            <div class="pdf-box"><h4>Área Construída</h4><p id="pdfArea"></p></div>
+            <div class="pdf-box"><h4>Área Terreno</h4><p id="pdfTerreno"></p></div>
+            <div class="pdf-box"><h4>Aluguel Base</h4><p id="pdfAluguelBase"></p></div>
+            <div class="pdf-box"><h4>Cap Rate Alvo</h4><p id="pdfCapRate"></p></div>
+        </div>
+    </div>
+
+    <div class="pdf-section">
+        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">2. Indicadores Financeiros</h3>
+        <div class="pdf-grid">
+            <div class="pdf-box"><h4>CAPEX Total</h4><p id="pdfCapex"></p></div>
+            <div class="pdf-box"><h4>Yield Inicial</h4><p id="pdfYield"></p></div>
+            <div class="pdf-box"><h4>Valuation Estimado</h4><p id="pdfValuation"></p></div>
+            <div class="pdf-box"><h4>Payback Simples</h4><p id="pdfPayback"></p></div>
+        </div>
+    </div>
+
+    <div class="pdf-section">
+        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">3. Projeção de Longo Prazo (15 Anos)</h3>
+        <table class="pdf-table">
+            <thead>
+                <tr><th>Ano</th><th>Aluguel Mensal</th><th>Receita Bruta</th><th>EBITDA</th><th>Saldo Acumulado</th></tr>
+            </thead>
+            <tbody id="pdfTabelaFluxo"></tbody>
+        </table>
+    </div>
+
+    <div class="pdf-section">
+        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">4. Simulador Payback Alvo (<span id="pdfPaybackTarget"></span>)</h3>
+        <div class="pdf-grid">
+            <div class="pdf-box"><h4>Aluguel Requerido</h4><p id="pdfSimAluguel"></p></div>
+            <div class="pdf-box"><h4>Aluguel por m²</h4><p id="pdfSimM2"></p></div>
+            <div class="pdf-box"><h4>Receita Anual</h4><p id="pdfSimReceita"></p></div>
+        </div>
+    </div>
+
+    <div class="pdf-section" id="pdfObsContainer">
+        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">5. Observações</h3>
+        <div class="pdf-text-block" id="pdfObsText"></div>
+    </div>
+</div>
+
 <div class="sticky-summary">
-    <div class="sticky-item">
-        <h5>CAPEX</h5>
-        <p id="mCapex">R$ 0M</p>
-    </div>
-    <div class="sticky-item">
-        <h5>Yield Inicial</h5>
-        <p id="mYield">0%</p>
-    </div>
-    <div class="sticky-item">
-        <h5>Payback Simples</h5>
-        <p id="mPayback">0a</p>
-    </div>
+    <div class="sticky-item"><h5>CAPEX</h5><p id="mCapex">R$ 0M</p></div>
+    <div class="sticky-item"><h5>Yield</h5><p id="mYield">0%</p></div>
+    <div class="sticky-item"><h5>Payback</h5><p id="mPayback">0a</p></div>
 </div>
 
 <script>
     const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-    const fmtUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
     let chartInstance = null;
+    let globalData = {};
+
+    document.getElementById('fData').valueAsDate = new Date();
 
     function switchTab(evt, tabId) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -257,7 +348,6 @@
     }
 
     function calcular() {
-        // Obtenção de Inputs
         const areaTerreno = parseFloat(document.getElementById('areaTerrenoNum').value) || 0;
         const custoTerreno = parseFloat(document.getElementById('custoTerrenoNum').value) || 0;
         const areaConstruida = parseFloat(document.getElementById('areaConstruidaNum').value) || 0;
@@ -267,35 +357,40 @@
         const cambio = parseFloat(document.getElementById('cambioNum').value) || 5.4;
         const capRate = parseFloat(document.getElementById('capRateNum').value) / 100 || 0.09;
         
-        // Parâmetros fixados do modelo original
         const opex = 0.05; 
         const ipca = 0.045;
 
-        // Cálculos Base de Investimento
         const totalTerreno = areaTerreno * custoTerreno;
         const totalObra = areaConstruida * custoConstrucao;
         const capexTotal = (totalTerreno + totalObra) * (1 + percIndiretos);
-        const capexUSD = capexTotal / cambio;
-
-        // Retornos Ano 1
+        
         const receitaAno1 = aluguel * 12;
         const ebitdaAno1 = receitaAno1 * (1 - opex);
         const yieldInicial = capexTotal > 0 ? (receitaAno1 / capexTotal) * 100 : 0;
         const valuation = capRate > 0 ? ebitdaAno1 / capRate : 0;
         const paybackSimples = receitaAno1 > 0 ? capexTotal / receitaAno1 : 0;
 
-        // Atualização da UI Primária
         document.getElementById('c1').innerText = fmtBRL.format(capexTotal);
-        document.getElementById('c2').innerText = fmtUSD.format(capexUSD);
+        document.getElementById('c2').innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(capexTotal / cambio);
         document.getElementById('c3').innerText = yieldInicial.toFixed(2) + '%';
         document.getElementById('c4').innerText = fmtBRL.format(valuation);
 
-        // Atualização da Barra Fixa Mobile
         document.getElementById('mCapex').innerText = 'R$ ' + (capexTotal / 1000000).toFixed(1) + 'M';
         document.getElementById('mYield').innerText = yieldInicial.toFixed(1) + '%';
-        document.getElementById('mPayback').innerText = paybackSimples.toFixed(1) + ' anos';
+        document.getElementById('mPayback').innerText = paybackSimples.toFixed(1) + 'a';
 
-        // Tabela de Cenários Dinâmicos (Conforme aba Viabilidade_Galpao do Excel)
+        globalData = {
+            areaConstruida: areaConstruida + ' m²',
+            areaTerreno: areaTerreno + ' m²',
+            aluguelBase: fmtBRL.format(aluguel),
+            capRate: (capRate * 100).toFixed(1) + '%',
+            capex: fmtBRL.format(capexTotal),
+            yield: yieldInicial.toFixed(2) + '%',
+            valuation: fmtBRL.format(valuation),
+            payback: paybackSimples.toFixed(1) + ' anos'
+        };
+
+        // Tabela Cenários
         const cenarios = [
             { nome: 'Conservador', yield: 9.0 },
             { nome: 'Cenário Base', yield: 10.5 },
@@ -317,8 +412,9 @@
         });
         document.getElementById('tabelaCenarios').innerHTML = htmlCenarios;
 
-        // Projeção do Fluxo de Caixa de 15 Anos
+        // Tabela Fluxo 15 anos + Tabela PDF
         let htmlFluxo = '';
+        let pdfHtmlFluxo = '';
         let aluguelAtual = aluguel;
         let acum = 0;
         window.fluxoDataLabels = [];
@@ -328,72 +424,110 @@
             let recBruta = aluguelAtual * 12;
             let ebitda = recBruta * (1 - opex);
             acum += ebitda;
-
+            
             window.fluxoDataLabels.push('Ano ' + ano);
             window.fluxoDataValores.push(acum);
-
-            htmlFluxo += `<tr>
-                <td style="text-align:center">${ano}</td>
-                <td>${fmtBRL.format(aluguelAtual)}</td>
-                <td>${fmtBRL.format(recBruta)}</td>
-                <td>${fmtBRL.format(ebitda)}</td>
-                <td>${fmtBRL.format(acum)}</td>
-            </tr>`;
+            
+            let strAno = `<td>${ano}</td><td>${fmtBRL.format(aluguelAtual)}</td><td>${fmtBRL.format(recBruta)}</td><td>${fmtBRL.format(ebitda)}</td><td>${fmtBRL.format(acum)}</td>`;
+            htmlFluxo += `<tr>${strAno}</tr>`;
+            pdfHtmlFluxo += `<tr><td style="text-align:center;">${ano}</td><td>${fmtBRL.format(aluguelAtual)}</td><td>${fmtBRL.format(recBruta)}</td><td>${fmtBRL.format(ebitda)}</td><td>${fmtBRL.format(acum)}</td></tr>`;
+            
             aluguelAtual *= (1 + ipca);
         }
         document.getElementById('tabelaFluxo').innerHTML = htmlFluxo;
+        document.getElementById('pdfTabelaFluxo').innerHTML = pdfHtmlFluxo;
 
-        // Cálculos do Simulador Reverso (Aba 3)
         const pAlvo = parseFloat(document.getElementById('pAlvoNum').value) || 10;
-        // Calcula a receita bruta anual necessária para atingir o payback considerando margem operacional
         const receitaRequeridaAnual = capexTotal / pAlvo;
         const aluguelRequeridoMensal = receitaRequeridaAnual / 12;
         const m2Requerido = areaConstruida > 0 ? aluguelRequeridoMensal / areaConstruida : 0;
-
+        
+        // Tela Web Simulador
         document.getElementById('pAluguel').innerText = fmtBRL.format(aluguelRequeridoMensal);
         document.getElementById('pM2').innerText = fmtBRL.format(m2Requerido) + ' / m²';
         document.getElementById('pReceita').innerText = fmtBRL.format(receitaRequeridaAnual);
+
+        // Exportação PDF Simulador
+        document.getElementById('pdfPaybackTarget').innerText = pAlvo + ' anos';
+        document.getElementById('pdfSimAluguel').innerText = fmtBRL.format(aluguelRequeridoMensal);
+        document.getElementById('pdfSimM2').innerText = fmtBRL.format(m2Requerido) + ' / m²';
+        document.getElementById('pdfSimReceita').innerText = fmtBRL.format(receitaRequeridaAnual);
+
+        if(document.getElementById('aba-fluxo').classList.contains('active')) { updateChart(); }
     }
 
     function updateChart() {
         const ctx = document.getElementById('chartFluxo').getContext('2d');
         if (chartInstance) { chartInstance.destroy(); }
-        
         chartInstance = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: window.fluxoDataLabels,
-                datasets: [{
-                    label: 'Lucro Operacional Acumulado (EBITDA)',
-                    data: window.fluxoDataValores,
-                    borderColor: '#0056b3',
-                    backgroundColor: 'rgba(0, 86, 179, 0.1)',
-                    fill: true,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        ticks: {
-                            callback: function(value) { return 'R$ ' + (value / 1000000) + 'M'; }
-                        }
-                    }
-                }
-            }
+            data: { labels: window.fluxoDataLabels, datasets: [{ label: 'EBITDA Acumulado', data: window.fluxoDataValores, borderColor: '#0056b3', backgroundColor: 'rgba(0, 86, 179, 0.1)', fill: true, tension: 0.2 }] },
+            options: { responsive: true, maintainAspectRatio: false }
         });
     }
 
-    // Suporte mobile para tooltips (toque para fechar)
+    function abrirModal() {
+        document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('modalOverlay').style.display = 'none';
+    }
+
+    function gerarPDF() {
+        const btn = document.querySelector('.modal .btn-export');
+        btn.innerText = "Gerando...";
+        btn.disabled = true;
+
+        document.getElementById('pdfHeaderEmpresa').innerText = document.getElementById('fEmpresa').value || 'RD Participações';
+        const rawDate = document.getElementById('fData').value;
+        document.getElementById('pdfHeaderData').innerText = rawDate ? rawDate.split('-').reverse().join('/') : '';
+        document.getElementById('pdfTitleProjeto').innerText = document.getElementById('fProjeto').value || 'Relatório de Viabilidade';
+        document.getElementById('pdfTitleInvestidor').innerText = document.getElementById('fInvestidor').value || 'Não Informado';
+        
+        document.getElementById('pdfArea').innerText = globalData.areaConstruida;
+        document.getElementById('pdfTerreno').innerText = globalData.areaTerreno;
+        document.getElementById('pdfAluguelBase').innerText = globalData.aluguelBase;
+        document.getElementById('pdfCapRate').innerText = globalData.capRate;
+        
+        document.getElementById('pdfCapex').innerText = globalData.capex;
+        document.getElementById('pdfYield').innerText = globalData.yield;
+        document.getElementById('pdfValuation').innerText = globalData.valuation;
+        document.getElementById('pdfPayback').innerText = globalData.payback;
+
+        const obsForm = document.getElementById('fObs').value;
+        const obsContainer = document.getElementById('pdfObsContainer');
+        if(obsForm.trim() !== '') {
+            obsContainer.style.display = 'block';
+            document.getElementById('pdfObsText').innerText = obsForm;
+        } else {
+            obsContainer.style.display = 'none';
+        }
+
+        const element = document.getElementById('pdfTemplate');
+        element.style.display = 'block';
+
+        const opt = {
+            margin:       15,
+            filename:     'Viabilidade_' + (document.getElementById('fProjeto').value.replace(/\s+/g, '_') || 'Relatorio') + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.style.display = 'none';
+            btn.innerText = "Gerar Arquivo";
+            btn.disabled = false;
+            fecharModal();
+        });
+    }
+
     document.addEventListener('touchstart', function(e) {
         if (!e.target.closest('.tooltip')) { document.activeElement.blur(); }
     });
 
-    window.onload = function() {
-        calcular();
-    };
+    window.onload = calcular;
 </script>
 
 </body>
